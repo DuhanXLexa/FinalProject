@@ -9,5 +9,6 @@ namespace Entities.Concrete
     {
         public string CategoryName { get; set; }
         public int CategoryId { get; set; }
+      
     }
 }

@@ -7,17 +7,15 @@ namespace Core.Utilities.Results
     public class Result : IResult
     {
 
-        public Result(bool success, string message):this(success)
+        public string Message { get; set; }
+        public bool Success { get; set; }
+        public Result(bool success)
         {
-            Message = message;
+            this.Success = success;
         }
-         public Result(bool success)
-         {
-                Success = success;
-         }
-
-        public bool Success { get; }
-
-        public string Message { get ; }
+        public Result(string message, bool success) : this(success)
+        {
+            this.Message = message;
+        }
     }
 }

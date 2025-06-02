@@ -1,9 +1,11 @@
-﻿using Core.Utilities.Results;
+﻿using Core.Utilities.Pagination;
+using Core.Utilities.Results;
 using Entities.Concrete;
 using Entities.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Business.Abstract
 {
@@ -16,5 +18,8 @@ namespace Business.Abstract
         IDataResult<Product> GetById(int productId);
         IResult Add (Product product);
          IResult Update(Product product);
+        IResult AddTransactionalTest(Product product);
+        Task<PagedResult<Product>> GetPagedProductsAsync(int pageNumber, int pageSize);
+
     }
 }

@@ -1,21 +1,27 @@
 ﻿using Business.Abstract;
+using Business.BusinessAspects.Autofac;
 using Business.CCS;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
+using Core.Aspects.Autofac.Caching;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
+using Core.Entities;
 using Core.Utilities.Business;
+using Core.Utilities.Pagination;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using Entities.Concrete;
 using Entities.DTOs;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using ValidationException = FluentValidation.ValidationException;
 
 namespace Business.Concrete
@@ -31,6 +37,7 @@ namespace Business.Concrete
         }
         [SecuredOperation("product.add,admin")]
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get")]
         public IResult Add(Product product)
         {
 
@@ -47,12 +54,12 @@ namespace Business.Concrete
 
             return new SuccessResult(Messages.ProductAdded);
         }
-
+        [CacheAspect]
             public IDataResult<List<Product>> GetAll()
         {
             if (DateTime.Now.Hour == 23)
             {
-                return new ErrorDataResult<List<Product>>(Messages.MaintenanceTime);
+                return new ErrorDataResult<List<Product>>(null,Messages.MaintenanceTime);
 
             }
             return new SuccessDataResult<List<Product>>(_productDal.GetAll(), Messages.ProductsListed);
@@ -63,7 +70,8 @@ namespace Business.Concrete
         {
             return new SuccessDataResult<List<Product>>(_productDal.GetAll(p => p.CategoryId == id));
         }
-
+        [CacheAspect]
+       // [PerformanceAspect(5)]
         public IDataResult<Product> GetById(int productId)
         {
             return new SuccessDataResult<Product>(_productDal.Get(p => p.ProductId == productId));
@@ -80,6 +88,7 @@ namespace Business.Concrete
         }
 
         [ValidationAspect(typeof(ProductValidator))]
+        [CacheRemoveAspect("IProductService.Get")]
         public IResult Update(Product product)
         {
             var result = _productDal.GetAll(p => p.CategoryId == product.CategoryId).Count;
@@ -118,6 +127,34 @@ namespace Business.Concrete
                 return new ErrorResult(Messages.CategoryLimitExceded);
             }
             return new SuccessResult();
+        }
+      //  [TransactionScopeAspect]
+        public IResult AddTransactionalTest(Product product)
+        {
+            Add(product);
+            if(product.UnitPrice < 10)
+            {
+                throw new Exception("");
+            }
+            return null;
+        }
+
+        public async Task<PagedResult<Product>> GetPagedProductsAsync(int pageNumber, int pageSize)
+        {
+            var totalRecords = _productDal.GetAll().Count;
+            var items = _productDal.GetAll()
+                .OrderBy(e => e.ProductId)
+                .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+                .ToList();
+
+            return new PagedResult<Product>
+            {
+                Items = items,
+                TotalCount = totalRecords,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
     }
 }
